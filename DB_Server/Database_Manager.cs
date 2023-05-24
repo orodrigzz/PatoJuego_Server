@@ -72,9 +72,14 @@ class Database_Manager
             while (reader.Read())
             {
                 //Almaceno el dato
-                string[] fieldsData = new string[2];
+                string[] fieldsData = new string[7];
                 fieldsData[0] = reader[0].ToString();
                 fieldsData[1] = reader[1].ToString();
+                fieldsData[2] = reader[2].ToString();
+                fieldsData[3] = reader[3].ToString();
+                fieldsData[4] = reader[4].ToString();
+                fieldsData[5] = reader[5].ToString();
+                fieldsData[6] = reader[6].ToString();
 
                 data.Add(fieldsData);
             }

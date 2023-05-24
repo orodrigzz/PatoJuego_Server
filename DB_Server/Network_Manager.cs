@@ -1,5 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Net;
+using MySqlX.XDevAPI;
+
 public class Network_Manager
 {
     private List<Client> clients;
@@ -97,11 +99,8 @@ public class Network_Manager
         clientListMutex.ReleaseMutex();
     }
 
-
     public void CheckConnection()
     {
-
-        
         //Revisamos conexiones cada cierto tiempo, en este caso 5000 milisegundos
         if (Environment.TickCount - this.lastTimePing > 5000)
         {
@@ -130,8 +129,6 @@ public class Network_Manager
             //Liberamos mutex
             clientListMutex.ReleaseMutex();
         }
-
-        
     }
 
     private void ManageData(Client client, string data)
@@ -143,19 +140,114 @@ public class Network_Manager
         {
             //Hemos definido que el 0 significa login y recibe dos parametros mas (usuario y contraseña)
             case "0":
-                Login(parameters[1], parameters[2]);
+                Login(parameters[1], parameters[2], client);
                 break;
             case "1":
                 //Hemos definido que el 1 es la respuesta del ping y no recibe mas parametros
                 ReceivePing(client);
                 break;
+            case "2": // Register
+                int id_race = Int32.Parse(parameters[3]);
+                Register(parameters[1], parameters[2], id_race, client);
+                break;
+            case "3": // Races
+                GetRaces(client);
+                break;
+            case "5": // Disconnect
+                Database_Manager._DATABASE_MANAGER.DisconnectDB();
+                break;
         }
     }
 
-    private void Login(string nick, string password)
+    private void Login(string username, string password, Client client)
     {
-        //Hacemos un print pero aqui hariamos verificariamos los datos de login
-        Console.WriteLine("Petición de: " + nick + " usando la clave: " + password);
+        Console.WriteLine("Petición de: " + username + " usando la clave: " + password);
+        try
+        {
+            //Writer con el tcp del cliente
+            StreamWriter writer = new StreamWriter(client.GetTcpClient().GetStream());
+
+            string loginQuery = "SELECT * FROM users WHERE nickname=" + "'" + username + "'" + " AND password=" + "'" + password + "'" + ";";
+            string userRaceID = Database_Manager._DATABASE_MANAGER.Login(loginQuery);
+
+            if (userRaceID != null)
+            {
+                //Send Info
+                writer.WriteLine("UserRace/" + userRaceID);
+                writer.Flush();
+            }
+            else
+            {
+                Console.WriteLine("Login Error: " + username + " ID race not found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Login Error: " + ex.Message + " con el cliente " + client.GetNick());
+        }
+    }
+    private void Register(string username, string password, int id_race, Client client)
+    {
+        Console.WriteLine("Registro de: " + username + " usando password: " + password + " con id_race: " + id_race);
+
+        try
+        {
+            //Writer con el tcp del cliente
+            StreamWriter writer = new StreamWriter(client.GetTcpClient().GetStream());
+
+            string registerQuery = "INSERT INTO users(nickname, password, id_race) VALUES('" + username + "', " + "'" + password + "', " + id_race + ");";
+            Database_Manager._DATABASE_MANAGER.Insert(registerQuery);
+
+            //Send Info
+            writer.WriteLine("Registered");
+            writer.Flush();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Register Error: " + ex.Message + " con el cliente " + client.GetNick());
+        }
+    }
+
+    private void GetRaces(Client client)
+    {
+        Console.WriteLine("Peticion para obtener razas");
+
+        try
+        {
+            //Writer con el tcp del cliente
+            StreamWriter writer = new StreamWriter(client.GetTcpClient().GetStream());
+
+            //Leo razas de la db y las almaceno en una lista
+            List<string[]> racesData = Database_Manager._DATABASE_MANAGER.GetRaces();
+
+            //Send Info
+            string data = "Races" + "/" + racesData.Count + "/";
+            for (int i = 0; i < racesData.Count; i++)
+            {
+                for (int j = 0; j < racesData[i].Length; j++)
+                {
+                    // Añadimos campo
+                    data += racesData[i][j];
+
+                    // Si no es la ultima string añadimos /
+                    if (i != racesData.Count && j != racesData[i].Length - 1)
+                    {
+                        data += "/";
+                    }
+                }
+                if (i != racesData.Count - 1)
+                {
+                    data += "/";
+                }
+            }
+            Console.WriteLine(data);
+            writer.WriteLine(data);
+            writer.Flush();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Races Error: " + ex.Message + " con el cliente " + client.GetNick());
+        }
     }
 
     private void SendPing(Client client)
