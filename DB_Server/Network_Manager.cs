@@ -279,26 +279,25 @@ public class Network_Manager
     }
     public void DisconnectClients()
     {
+        ////Bloqueo el mutex para acceder a la lista de clientes (en el remove)
+        //clientListMutex.WaitOne();
         
-        //Bloqueo el mutex para acceder a la lista de clientes (en el remove)
-        clientListMutex.WaitOne();
-        
-        //Recorro la lista de usuarios a desconectar
-        foreach (Client client in this.disconnectClients)
-        {
-            Console.WriteLine("Desconectando usuarios");
+        ////Recorro la lista de usuarios a desconectar
+        //foreach (Client client in this.disconnectClients)
+        //{
+        //    Console.WriteLine("Desconectando usuarios");
             
-            //Cierro la conexion antes de eliminar el cliente de la lista de conectados
-            client.GetTcpClient().Close();
+        //    //Cierro la conexion antes de eliminar el cliente de la lista de conectados
+        //    client.GetTcpClient().Close();
             
-            //Elimino el cliente de la lista de clientes a desconectar
-            this.clients.Remove(client);
-        }
+        //    //Elimino el cliente de la lista de clientes a desconectar
+        //    this.clients.Remove(client);
+        //}
         
-        //Vacio la lista de usuarios a desconectar
-        this.disconnectClients.Clear();
+        ////Vacio la lista de usuarios a desconectar
+        //this.disconnectClients.Clear();
         
-        //Libero el mutex
-        clientListMutex.ReleaseMutex();
+        ////Libero el mutex
+        //clientListMutex.ReleaseMutex();
     }
 }
